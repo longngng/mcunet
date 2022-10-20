@@ -45,11 +45,11 @@ class OFAProxylessNASNets(ProxylessNASNets):
         # first conv layer
         if len(input_channel) == 1:
             first_conv = ConvLayer(
-                3, max(input_channel), kernel_size=3, stride=2, use_bn=True, act_func='relu6', ops_order='weight_bn_act'
+                1, max(input_channel), kernel_size=3, stride=2, use_bn=True, act_func='relu6', ops_order='weight_bn_act'
             )
         else:
             first_conv = DynamicConvLayer(
-                in_channel_list=val2list(3, len(input_channel)), out_channel_list=input_channel, kernel_size=3,
+                in_channel_list=val2list(1, len(input_channel)), out_channel_list=input_channel, kernel_size=3,
                 stride=2, act_func='relu6'
             )
         # first block
@@ -336,7 +336,7 @@ class OFAProxylessNASNets(ProxylessNASNets):
                 out = copy.deepcopy(m)
             return out
 
-        first_conv = get_or_copy_subnet(self.first_conv, in_channel=3)
+        first_conv = get_or_copy_subnet(self.first_conv, in_channel=1)
         input_channel = first_conv.out_channels
 
         blocks = [MobileInvertedResidualBlock(
