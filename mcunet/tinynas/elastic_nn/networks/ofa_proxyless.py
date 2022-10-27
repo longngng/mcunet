@@ -4,6 +4,7 @@
 
 import copy
 import random
+import numpy as np
 
 from ..modules import DynamicMBConvLayer, DynamicConvLayer, DynamicLinearLayer
 from ...nn.modules import ConvLayer, IdentityLayer, LinearLayer, MBInvertedConvLayer
@@ -34,6 +35,7 @@ class OFAProxylessNASNets(ProxylessNASNets):
         else:
             # ProxylessNAS Stage Width
             base_stage_width = [32, 16, 24, 40, 80, 96, 192, 320, 1280]
+            base_stage_width = [int(i / 4) for i in base_stage_width]
 
         input_channel = [make_divisible(base_stage_width[0] * width_mult, 8) for width_mult in self.width_mult_list]
         first_block_width = [make_divisible(base_stage_width[1] * width_mult, 8) for width_mult in self.width_mult_list]
@@ -326,6 +328,64 @@ class OFAProxylessNASNets(ProxylessNASNets):
             'ks': ks_setting,
             'e': expand_setting,
             'd': depth_setting,
+        }
+
+    def get_config_active_subnet_skewed(self):
+        ks_candidates = (
+            self.ks_list
+            if self.__dict__.get("_ks_include_list", None) is None
+            else self.__dict__["_ks_include_list"]
+        )
+        expand_candidates = (
+            self.expand_ratio_list
+            if self.__dict__.get("_expand_include_list", None) is None
+            else self.__dict__["_expand_include_list"]
+        )
+        depth_candidates = (
+            self.depth_list
+            if self.__dict__.get("_depth_include_list", None) is None
+            else self.__dict__["_depth_include_list"]
+        )
+
+        # sample kernel size
+        ks_setting = []
+        if not isinstance(ks_candidates[0], list):
+            ks_candidates = [ks_candidates for _ in range(len(self.blocks) - 1)]
+        for k_set in ks_candidates:
+            prob = [0.05, 0.95]
+            k = int(np.random.choice(k_set, 1, p=prob)[0])
+            ks_setting.append(k)
+
+        # sample expand ratio
+        expand_setting = []
+        if not isinstance(expand_candidates[0], list):
+            expand_candidates = [expand_candidates for _ in range(len(self.blocks) - 1)]
+        for e_set in expand_candidates:
+            prob = [0.05, 0.1, 0.85]
+            e = int(np.random.choice(e_set, 1, p=prob)[0])
+            expand_setting.append(e)
+
+        # sample depth
+        depth_setting = []
+        if not isinstance(depth_candidates[0], list):
+            depth_candidates = [
+                depth_candidates for _ in range(len(self.block_group_info))
+            ]
+        for d_set in depth_candidates:
+            prob = [0.05, 0.1, 0.85]
+            d = int(np.random.choice(d_set, 1, p=prob)[0])
+            depth_setting.append(d)
+
+        # sample width_mult, move to last to keep the same randomness
+        width_mult_setting = len(self.width_mult_list) - 1
+
+        # self.set_active_subnet(width_mult_setting, ks_setting, expand_setting, depth_setting)
+
+        return {
+            "wid": width_mult_setting,
+            "ks": ks_setting,
+            "e": expand_setting,
+            "d": depth_setting,
         }
 
     def get_active_subnet(self, preserve_weight=True):
