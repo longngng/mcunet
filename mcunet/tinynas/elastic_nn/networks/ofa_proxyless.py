@@ -361,7 +361,7 @@ class OFAProxylessNASNets(ProxylessNASNets):
         if not isinstance(expand_candidates[0], list):
             expand_candidates = [expand_candidates for _ in range(len(self.blocks) - 1)]
         for e_set in expand_candidates:
-            prob = [0.05, 0.1, 0.85]
+            prob = [0.1, 0.9]
             e = int(np.random.choice(e_set, 1, p=prob)[0])
             expand_setting.append(e)
 
